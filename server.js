@@ -16,41 +16,31 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Routes
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 // API endpoint for candidate search
 app.post('/api/search', async (req, res) => {
     try {
         const { jobTitle, location, skills, experience } = req.body;
-        
         console.log('Search request:', { jobTitle, location, skills, experience });
-        
-        // Run all scrapers in parallel
+
         const [linkedinResults, indeedResults, googleResults] = await Promise.allSettled([
             linkedinScraper.search({ jobTitle, location, skills, experience }),
             indeedScraper.search({ jobTitle, location, skills, experience }),
             googleScraper.search({ jobTitle, location, skills, experience })
         ]);
 
-        // Combine results
-        const allResults = [];
-        
-        if (linkedinResults.status === 'fulfilled') {
-            allResults.push(...linkedinResults.value);
-        }
-        
-        if (indeedResults.status === 'fulfilled') {
-            allResults.push(...indeedResults.value);
-        }
-        
-        if (googleResults.status === 'fulfilled') {
-            allResults.push(...googleResults.value);
+        let allResults = [];
+
+        if (linkedinResults.status === 'fulfilled') allResults.push(...linkedinResults.value);
+        if (indeedResults.status === 'fulfilled') allResults.push(...indeedResults.value);
+        if (googleResults.status === 'fulfilled') allResults.push(...googleResults.value);
+
+        if (allResults.length === 0) {
+            return res.status(500).json({
+                success: false,
+                error: 'No results from any scraper'
+            });
         }
 
-        // Remove duplicates based on email or name
         const uniqueResults = allResults.filter((candidate, index, self) => {
             return index === self.findIndex((c) => c.email === candidate.email || c.name === candidate.name);
         });
@@ -60,7 +50,6 @@ app.post('/api/search', async (req, res) => {
             count: uniqueResults.length,
             results: uniqueResults
         });
-        
     } catch (error) {
         console.error('Search error:', error);
         res.status(500).json({
@@ -73,15 +62,24 @@ app.post('/api/search', async (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'healthy', 
+    res.json({
+        status: 'healthy',
         timestamp: new Date().toISOString(),
         version: '1.0.0'
     });
 });
 
+// Fallback route (for React/SPA or static page refresh)
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // Start server
 app.listen(PORT, () => {
     console.log(`🚀 HR Sourcing App running on port ${PORT}`);
-    console.log(`📱 Access at: http://localhost:${PORT}`);
+    if (process.env.RENDER) {
+        console.log(`🌐 Live at: ${process.env.RENDER_EXTERNAL_URL || 'Render URL not detected'}`);
+    } else {
+        console.log(`📱 Access locally at: http://localhost:${PORT}`);
+    }
 });
