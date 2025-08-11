@@ -6,17 +6,19 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Import scrapers
+// ====== Import scrapers ======
 const linkedinScraper = require('./scraper/linkedin-scraper');
 const indeedScraper = require('./scraper/indeed-scraper');
 const googleScraper = require('./scraper/google-scraper');
 
-// Middleware
+// ====== Middleware ======
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from public folder
 app.use(express.static(path.join(__dirname, 'public')));
 
-// API endpoint for candidate search
+// ====== API endpoint for candidate search ======
 app.post('/api/search', async (req, res) => {
     try {
         const { jobTitle, location, skills, experience } = req.body;
@@ -60,7 +62,7 @@ app.post('/api/search', async (req, res) => {
     }
 });
 
-// Health check endpoint
+// ====== Health check endpoint ======
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'healthy',
@@ -69,12 +71,17 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Fallback route (for React/SPA or static page refresh)
+// ====== Serve index.html for root ======
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ====== Fallback for SPA refreshes ======
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Start server
+// ====== Start server ======
 app.listen(PORT, () => {
     console.log(`🚀 HR Sourcing App running on port ${PORT}`);
     if (process.env.RENDER) {
