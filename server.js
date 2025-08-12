@@ -7,6 +7,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ====== Import scrapers ======
+// If these don't exist yet, comment them out temporarily
 const linkedinScraper = require('./scraper/linkedin-scraper');
 const indeedScraper = require('./scraper/indeed-scraper');
 const googleScraper = require('./scraper/google-scraper');
@@ -15,7 +16,7 @@ const googleScraper = require('./scraper/google-scraper');
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from public folder
+// ====== Serve static files from public ======
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ====== API endpoint for candidate search ======
@@ -71,12 +72,7 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// ====== Serve index.html for root ======
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// ====== Fallback for SPA refreshes ======
+// ====== Always serve index.html for root and unknown routes ======
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -84,9 +80,5 @@ app.get('*', (req, res) => {
 // ====== Start server ======
 app.listen(PORT, () => {
     console.log(`🚀 HR Sourcing App running on port ${PORT}`);
-    if (process.env.RENDER) {
-        console.log(`🌐 Live at: ${process.env.RENDER_EXTERNAL_URL || 'Render URL not detected'}`);
-    } else {
-        console.log(`📱 Access locally at: http://localhost:${PORT}`);
-    }
+    console.log(`🌐 Access: http://localhost:${PORT}`);
 });
